@@ -2,11 +2,40 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const admin = require('firebase-admin');
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'leaderboard.json');
+
+const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
+const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+let firestore = null;
+
+function initFirebase() {
+  if (firestore) return firestore;
+
+  if (firebaseProjectId && firebaseClientEmail && firebasePrivateKey) {
+    const credentials = {
+      projectId: firebaseProjectId,
+      clientEmail: firebaseClientEmail,
+      privateKey: firebasePrivateKey.replace(/\\n/g, '\n')
+    };
+
+    if (!admin.apps.length) {
+      admin.initializeApp({ credential: admin.credential.cert(credentials) });
+    }
+
+    firestore = admin.firestore();
+    console.log('Using Firebase Firestore storage for leaderboard.');
+  } else {
+    console.warn('Firebase credentials missing; falling back to local file storage.');
+  }
+
+  return firestore;
+}
 
 function ensureDataFile() {
   if (!fs.existsSync(DATA_DIR)) {
@@ -17,7 +46,26 @@ function ensureDataFile() {
   }
 }
 
-function loadLeaderboard() {
+async function loadLeaderboard() {
+  const db = initFirebase();
+  if (db) {
+    const snapshot = await db
+      .collection('leaderboard')
+      .orderBy('score', 'desc')
+      .orderBy('submittedAt', 'asc')
+      .limit(5)
+      .get();
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        name: data.name,
+        score: data.score,
+        submittedAt: data.submittedAt
+      };
+    });
+  }
+
   ensureDataFile();
   try {
     const data = fs.readFileSync(DATA_FILE, 'utf-8');
@@ -29,7 +77,32 @@ function loadLeaderboard() {
   }
 }
 
-function saveLeaderboard(entries) {
+async function saveLeaderboard(entries) {
+  const db = initFirebase();
+  if (db) {
+    const batch = db.batch();
+    const collectionRef = db.collection('leaderboard');
+
+    entries.forEach((entry) => {
+      const docId = (entry.name || 'anonymous')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_-]/g, '') || 'anonymous';
+      const docRef = collectionRef.doc(docId);
+      batch.set(docRef, entry);
+    });
+
+    // Clean up any extra documents beyond top 5 by fetching current docs.
+    const existing = await collectionRef.get();
+    existing.docs
+      .filter((doc) => !entries.find((e) => (e.name || '').toString().toLowerCase() === (doc.data().name || '').toString().toLowerCase()))
+      .forEach((doc) => batch.delete(doc.ref));
+
+    await batch.commit();
+    return;
+  }
+
   ensureDataFile();
   fs.writeFileSync(DATA_FILE, JSON.stringify(entries, null, 2), 'utf-8');
 }
@@ -97,7 +170,14 @@ async function parseBody(req) {
   });
 }
 
-let leaderboard = loadLeaderboard();
+let leaderboard = [];
+loadLeaderboard()
+  .then((entries) => {
+    leaderboard = entries;
+  })
+  .catch((err) => {
+    console.error('Failed to initialize leaderboard from storage', err);
+  });
 
 function upsertEntry(entries, newEntry) {
   const nameKey = (newEntry.name || '').toString().toLowerCase();
@@ -113,6 +193,7 @@ const server = http.createServer(async (req, res) => {
 
     if (urlObj.pathname === '/api/leaderboard') {
       if (req.method === 'GET') {
+        leaderboard = await loadLeaderboard();
         sendJson(res, 200, { entries: leaderboard });
         return;
       }
@@ -134,10 +215,10 @@ const server = http.createServer(async (req, res) => {
             submittedAt: new Date().toISOString()
           };
 
-          leaderboard = upsertEntry(leaderboard, entry);
-          saveLeaderboard(leaderboard);
+          leaderboard = upsertEntry(await loadLeaderboard(), entry);
+          await saveLeaderboard(leaderboard);
 
-          sendJson(res, 201, { entries: leaderboard });
+          sendJson(res, 201, { entries: await loadLeaderboard() });
         } catch (err) {
           console.error('Failed to save leaderboard', err);
           sendJson(res, 400, { error: '요청을 처리할 수 없습니다.' });
