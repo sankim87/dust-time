@@ -100,64 +100,69 @@ async function parseBody(req) {
 let leaderboard = loadLeaderboard();
 
 const server = http.createServer(async (req, res) => {
-  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  try {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
 
-  if (urlObj.pathname === '/api/leaderboard') {
-    if (req.method === 'GET') {
-      sendJson(res, 200, { entries: leaderboard });
-      return;
-    }
-
-    if (req.method === 'POST') {
-      try {
-        const body = await parseBody(req);
-        const name = (body.name || '익명 노동자').toString().trim().slice(0, 32);
-        const score = Number(body.score);
-
-        if (!Number.isFinite(score) || score < 0) {
-          sendJson(res, 400, { error: '유효하지 않은 점수입니다.' });
-          return;
-        }
-
-        const entry = {
-          name: name || '익명 노동자',
-          score: Math.floor(score),
-          submittedAt: new Date().toISOString()
-        };
-
-        leaderboard = sortAndTrim([...leaderboard, entry]);
-        saveLeaderboard(leaderboard);
-
-        sendJson(res, 201, { entries: leaderboard });
-      } catch (err) {
-        console.error('Failed to save leaderboard', err);
-        sendJson(res, 400, { error: '요청을 처리할 수 없습니다.' });
+    if (urlObj.pathname === '/api/leaderboard') {
+      if (req.method === 'GET') {
+        sendJson(res, 200, { entries: leaderboard });
+        return;
       }
+
+      if (req.method === 'POST') {
+        try {
+          const body = await parseBody(req);
+          const name = (body.name || '익명 노동자').toString().trim().slice(0, 32);
+          const score = Number(body.score);
+
+          if (!Number.isFinite(score) || score < 0) {
+            sendJson(res, 400, { error: '유효하지 않은 점수입니다.' });
+            return;
+          }
+
+          const entry = {
+            name: name || '익명 노동자',
+            score: Math.floor(score),
+            submittedAt: new Date().toISOString()
+          };
+
+          leaderboard = sortAndTrim([...leaderboard, entry]);
+          saveLeaderboard(leaderboard);
+
+          sendJson(res, 201, { entries: leaderboard });
+        } catch (err) {
+          console.error('Failed to save leaderboard', err);
+          sendJson(res, 400, { error: '요청을 처리할 수 없습니다.' });
+        }
+        return;
+      }
+
+      sendJson(res, 405, { error: '메서드를 지원하지 않습니다.' });
       return;
     }
 
-    sendJson(res, 405, { error: '메서드를 지원하지 않습니다.' });
-    return;
-  }
+    let requestedPath = urlObj.pathname === '/' ? '/index.html' : decodeURI(urlObj.pathname);
+    const safePath = path.normalize(requestedPath).replace(/^\.\//, '/');
+    let filePath = path.join(ROOT_DIR, safePath);
 
-  let requestedPath = urlObj.pathname === '/' ? '/index.html' : decodeURI(urlObj.pathname);
-  const safePath = path.normalize(requestedPath).replace(/^\.\//, '/');
-  let filePath = path.join(ROOT_DIR, safePath);
-
-  if (!filePath.startsWith(ROOT_DIR)) {
-    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('잘못된 경로입니다.');
-    return;
-  }
-
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Not Found');
+    if (!filePath.startsWith(ROOT_DIR)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('잘못된 경로입니다.');
       return;
     }
-    serveFile(res, filePath);
-  });
+
+    fs.stat(filePath, (err, stats) => {
+      if (err || !stats.isFile()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not Found');
+        return;
+      }
+      serveFile(res, filePath);
+    });
+  } catch (err) {
+    console.error('Unhandled server error', err);
+    sendJson(res, 500, { error: '서버 오류가 발생했습니다.' });
+  }
 });
 
 server.listen(PORT, () => {

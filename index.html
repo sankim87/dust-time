@@ -330,11 +330,22 @@
             submitStatus: document.getElementById('submit-status')
         };
 
+        async function readJsonSafe(res) {
+            const text = await res.text();
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                console.error('JSON parse failed', err, text);
+                return null;
+            }
+        }
+
         async function refreshLeaderboard() {
             try {
                 const res = await fetch('/api/leaderboard');
-                const data = await res.json();
-                leaderboardData = data.entries || [];
+                const data = await readJsonSafe(res);
+                leaderboardData = data?.entries || [];
                 renderLeaderboard(leaderboardData, els.leaderboard.start);
                 renderLeaderboard(leaderboardData, els.leaderboard.end);
                 updateRankDisplay();
@@ -530,7 +541,10 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await res.json();
+                const data = await readJsonSafe(res);
+                if (!data) {
+                    throw new Error('서버 응답을 읽을 수 없습니다.');
+                }
 
                 if (!res.ok || data.error) {
                     throw new Error(data.error || '점수 기록 실패');
