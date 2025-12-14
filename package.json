@@ -1,0 +1,14 @@
+{
+  "name": "dust-time",
+  "version": "1.0.0",
+  "description": "Dust Farm game with persistent leaderboard.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
