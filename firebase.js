@@ -4,7 +4,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: 'AIzaSyAASPggmibgpzuOuRXCB20_9jQlfZJzofk',
   authDomain: 'dust-time.firebaseapp.com',
   projectId: 'dust-time',
@@ -15,6 +15,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// 간단한 확인 로그로 올바른 Firebase 프로젝트가 초기화되었는지 확인합니다.
+if (app.options?.projectId !== firebaseConfig.projectId) {
+  console.warn('Firebase 프로젝트 ID가 기대값과 다릅니다:', app.options?.projectId);
+} else {
+  console.info('Firebase가 dust-time 구성으로 초기화되었습니다.');
+}
 
 export const db = getFirestore(app);
 export const auth = getAuth(app);
