@@ -99,6 +99,14 @@ async function parseBody(req) {
 
 let leaderboard = loadLeaderboard();
 
+function upsertEntry(entries, newEntry) {
+  const nameKey = (newEntry.name || '').toString().toLowerCase();
+  const filtered = entries.filter(
+    (entry) => (entry.name || '').toString().toLowerCase() !== nameKey
+  );
+  return sortAndTrim([...filtered, newEntry]);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const urlObj = new URL(req.url, `http://${req.headers.host}`);
@@ -126,7 +134,7 @@ const server = http.createServer(async (req, res) => {
             submittedAt: new Date().toISOString()
           };
 
-          leaderboard = sortAndTrim([...leaderboard, entry]);
+          leaderboard = upsertEntry(leaderboard, entry);
           saveLeaderboard(leaderboard);
 
           sendJson(res, 201, { entries: leaderboard });
