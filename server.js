@@ -2,7 +2,13 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
-const admin = require('firebase-admin');
+
+let admin = null;
+try {
+  admin = require('firebase-admin');
+} catch (err) {
+  console.warn('firebase-admin 모듈을 불러오지 못했습니다. 로컬 파일 저장소로 대체합니다.', err.message);
+}
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = __dirname;
@@ -17,7 +23,7 @@ let firestore = null;
 function initFirebase() {
   if (firestore) return firestore;
 
-  if (firebaseProjectId && firebaseClientEmail && firebasePrivateKey) {
+  if (admin && firebaseProjectId && firebaseClientEmail && firebasePrivateKey) {
     const credentials = {
       projectId: firebaseProjectId,
       clientEmail: firebaseClientEmail,
