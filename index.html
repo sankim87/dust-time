@@ -112,6 +112,15 @@
         <button onclick="startGame()" class="w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-lg rounded transition border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
             [ 계약 체결 및 채굴 시작 ]
         </button>
+
+        <div class="glass-panel p-4 rounded mt-6 border border-gray-800">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">명예의 전당 (상위 5명)</h3>
+                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            </div>
+            <ol id="start-leaderboard" class="space-y-2"></ol>
+            <p class="text-[10px] text-gray-500 mt-2">계약 종료 시 기록이 제출되며, 상위 5명만 남습니다.</p>
+        </div>
     </section>
 
     <!-- 2. GAME SCREEN -->
@@ -246,6 +255,21 @@
             <!-- Messages will be injected here -->
         </div>
 
+        <div class="glass-panel p-4 rounded w-full mt-6 space-y-3 border border-gray-800">
+            <p class="text-xs text-gray-400">계약 종료 후, 이름을 남기면 명예의 전당에 기록됩니다.</p>
+            <input id="player-name" type="text" maxlength="32" placeholder="익명 노동자" class="w-full bg-black/40 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500" />
+            <button id="submit-score" onclick="submitScore()" class="w-full py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-sm rounded transition border border-yellow-500/30">명예의 전당에 올리기</button>
+            <p id="submit-status" class="text-[11px] text-gray-500">상위 5명의 기록만 보존됩니다.</p>
+        </div>
+
+        <div class="glass-panel p-4 rounded w-full mt-4 border border-gray-800">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">현재 명예의 전당</h3>
+                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            </div>
+            <ol id="end-leaderboard" class="space-y-2 w-full"></ol>
+        </div>
+
         <button onclick="location.reload()" class="mt-8 text-xs text-gray-500 border border-gray-700 px-8 py-3 hover:bg-gray-800 hover:text-white transition uppercase tracking-widest">
             새 계약 체결 (다시 하기)
         </button>
@@ -281,18 +305,19 @@
             clickPower: 1,
             autoRate: 0,
             globalMult: 1,
-            heatGenMult: 1,
-            
-            // Stats
-            rank: 9999
+            heatGenMult: 1
         };
 
+        let leaderboardData = [];
+        let hasSubmittedScore = false;
+        let leaderboardPoll = null;
         let loops = { game: null, auto: null };
 
         const els = {
             screens: { start: document.getElementById('start-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen') },
             score: document.getElementById('score-display'),
             rank: document.getElementById('rank-display'),
+            leaderboard: { start: document.getElementById('start-leaderboard'), end: document.getElementById('end-leaderboard') },
             lifeBar: document.getElementById('life-bar'),
             lifeText: document.getElementById('life-text'),
             lifeCap: document.getElementById('life-cap-marker'),
@@ -300,8 +325,77 @@
             entropyText: document.getElementById('entropy-text'),
             sysMsg: document.getElementById('system-msg'),
             gameBody: document.getElementById('game-screen'),
-            upgrades: [document.getElementById('upg-1'), document.getElementById('upg-2'), document.getElementById('upg-3')]
+            upgrades: [document.getElementById('upg-1'), document.getElementById('upg-2'), document.getElementById('upg-3')],
+            playerName: document.getElementById('player-name'),
+            submitBtn: document.getElementById('submit-score'),
+            submitStatus: document.getElementById('submit-status')
         };
+
+        async function readJsonSafe(res) {
+            const text = await res.text();
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch (err) {
+                console.error('JSON parse failed', err, text);
+                return null;
+            }
+        }
+
+        async function refreshLeaderboard() {
+            try {
+                const res = await fetch('/api/leaderboard');
+                const data = await readJsonSafe(res);
+                leaderboardData = data?.entries || [];
+                renderLeaderboard(leaderboardData, els.leaderboard.start);
+                renderLeaderboard(leaderboardData, els.leaderboard.end);
+                updateRankDisplay();
+            } catch (err) {
+                console.error('Leaderboard fetch failed', err);
+                renderLeaderboardError(els.leaderboard.start);
+                renderLeaderboardError(els.leaderboard.end);
+                els.rank.innerText = '집계 불가';
+            }
+        }
+
+        function renderLeaderboard(entries, target) {
+            if (!target) return;
+            target.innerHTML = '';
+
+            if (!entries || entries.length === 0) {
+                const empty = document.createElement('li');
+                empty.className = 'text-[11px] text-gray-500';
+                empty.innerText = '기록 없음';
+                target.appendChild(empty);
+                return;
+            }
+
+            entries.forEach((entry, idx) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center text-sm text-gray-200 bg-black/30 border border-gray-800 rounded px-3 py-2';
+                li.innerHTML = `<span class="font-mono text-yellow-400">${idx + 1}위</span><span class="flex-1 ml-2 truncate">${entry.name}</span><span class="font-mono text-gray-400">${Number(entry.score).toLocaleString()} g</span>`;
+                target.appendChild(li);
+            });
+        }
+
+        function renderLeaderboardError(target) {
+            if (!target) return;
+            target.innerHTML = '';
+            const li = document.createElement('li');
+            li.className = 'text-[11px] text-red-400';
+            li.innerText = '리더보드를 불러오지 못했습니다.';
+            target.appendChild(li);
+        }
+
+        function updateRankDisplay() {
+            if (!els.rank) return;
+            if (!leaderboardData.length) {
+                els.rank.innerText = '집계 중';
+                return;
+            }
+            const top = leaderboardData[0];
+            els.rank.innerText = `${top.name} - ${Number(top.score).toLocaleString()} g`;
+        }
 
         /* --- CORE LOGIC --- */
         function startGame() {
@@ -318,7 +412,7 @@
 
             // 1. Life Drain Logic
             let currentDrain = BASE_LIFE_DRAIN;
-            
+
             if (state.heat > 50) currentDrain *= 1.5;
             if (state.heat > 80) currentDrain *= 2.5;
             if (state.heat >= 99) currentDrain *= 5.0; // Critical
@@ -327,13 +421,7 @@
 
             // 2. Heat Recovery
             if (state.heat > 0) state.heat -= 0.15;
-
-            // 3. Fake Rank Logic
-            if (state.score > 100 && state.rank > 5000) state.rank -= 123;
-            else if (state.score > 500 && state.rank > 1000) state.rank -= 45;
-            else if (state.score > 2000 && state.rank > 100) state.rank -= 2;
-            
-            // 4. Game Over Checks
+            // 3. Game Over Checks
             if (state.heat >= 100) gameOver("엔진 폭발 (과도한 욕심)");
             if (state.life <= 0) gameOver("본질 소멸 (과로사)");
 
@@ -353,7 +441,7 @@
 
             // Score & Rank
             els.score.innerText = Math.floor(state.score).toLocaleString() + " g";
-            els.rank.innerText = state.rank > 1 ? `상위 ${state.rank}위` : `상위 1위 (의미없음)`;
+            updateRankDisplay();
 
             // Life Bar
             let lifePct = Math.max(0, state.life);
@@ -435,6 +523,65 @@
             updateUI();
         }
 
+        function resetSubmissionUI() {
+            hasSubmittedScore = false;
+            if (els.submitBtn) els.submitBtn.disabled = false;
+            if (els.submitStatus) {
+                els.submitStatus.innerText = '상위 5명의 기록만 보존됩니다.';
+                els.submitStatus.className = 'text-[11px] text-gray-500';
+            }
+        }
+
+        async function submitScore() {
+            if (hasSubmittedScore || !els.submitBtn) return;
+
+            els.submitBtn.disabled = true;
+            if (els.submitStatus) {
+                els.submitStatus.innerText = '기록 전송 중...';
+                els.submitStatus.className = 'text-[11px] text-gray-400';
+            }
+
+            try {
+                const payload = {
+                    name: (els.playerName?.value || '').trim() || '익명 노동자',
+                    score: Math.floor(state.score)
+                };
+
+                const res = await fetch('/api/leaderboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await readJsonSafe(res);
+                if (!data) {
+                    throw new Error('서버 응답을 읽을 수 없습니다.');
+                }
+
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || '점수 기록 실패');
+                }
+
+                hasSubmittedScore = true;
+                leaderboardData = data.entries || leaderboardData;
+                renderLeaderboard(leaderboardData, els.leaderboard.start);
+                renderLeaderboard(leaderboardData, els.leaderboard.end);
+                updateRankDisplay();
+
+                if (els.submitStatus) {
+                    els.submitStatus.innerText = '명예의 전당에 기록되었습니다.';
+                    els.submitStatus.className = 'text-[11px] text-green-400';
+                }
+            } catch (err) {
+                console.error('Submit failed', err);
+                if (els.submitStatus) {
+                    els.submitStatus.innerText = '기록 실패: ' + err.message;
+                    els.submitStatus.className = 'text-[11px] text-red-400';
+                }
+                els.submitBtn.disabled = false;
+            }
+        }
+
         /* --- END GAME --- */
         function gameOver(reason) {
             state.active = false;
@@ -444,6 +591,10 @@
 
             els.screens.game.classList.add('hidden-page');
             els.screens.end.classList.remove('hidden-page');
+
+            resetSubmissionUI();
+            if (els.playerName) els.playerName.value = '';
+            refreshLeaderboard();
 
             document.getElementById('end-score').innerText = Math.floor(state.score).toLocaleString() + " g";
             document.getElementById('end-reason').innerText = reason;
@@ -474,6 +625,14 @@
                 }
             }, 30);
         }
+
+        function startLeaderboardPolling(intervalMs = 10000) {
+            if (leaderboardPoll) clearInterval(leaderboardPoll);
+            refreshLeaderboard();
+            leaderboardPoll = setInterval(refreshLeaderboard, intervalMs);
+        }
+
+        startLeaderboardPolling();
     </script>
 </body>
 </html>
