@@ -22,6 +22,15 @@
             -webkit-text-size-adjust: none;
         }
 
+        /* Safe Area Utilities */
+        .pt-safe-top {
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+
+        .pb-safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
         /* --- Visual Styles --- */
         .glass-panel {
             background: rgba(30, 30, 30, 0.6);
@@ -147,7 +156,7 @@
     </style>
 </head>
 
-<body class="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
+<body class="h-[100dvh] w-screen flex flex-col items-center justify-start relative overflow-hidden bg-[#111]">
 
     <!-- Background Particles -->
     <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
@@ -189,7 +198,8 @@
     </section>
 
     <!-- 2. GAME SCREEN -->
-    <section id="game-screen" class="hidden-page w-full h-full max-w-md flex flex-col relative z-10 p-4">
+    <section id="game-screen"
+        class="hidden-page w-full h-full max-w-md flex flex-col relative z-10 p-4 pt-safe-top pb-safe-bottom">
 
         <!-- Header -->
         <div class="glass-panel p-4 rounded mb-4 flex justify-between items-center">
