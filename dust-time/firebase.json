@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "dust-time",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIME LEAK: 먼지 농장</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;500;700&display=swap');
+
+        body {
+            font-family: 'JetBrains Mono', 'Noto Sans KR', monospace;
+            background-color: #111;
+            color: #ccc;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            word-break: keep-all;
+        }
+
+        /* --- Visual Styles --- */
+        .glass-panel {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-action {
+            transition: all 0.1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-action:active {
+            transform: scale(0.97);
+        }
+
+        .btn-action:disabled {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+        }
+
+        /* Effects */
+        .shake-mild {
+            animation: shake 0.5s infinite;
+        }
+
+        .shake-hard {
+            animation: violent-shake 0.3s infinite;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(0.5px, 0.5px);
+            }
+
+            50% {
+                transform: translate(-0.5px, -0.5px);
+            }
+
+            100% {
+                transform: translate(0.5px, -0.5px);
+            }
+        }
+
+        @keyframes violent-shake {
+            0% {
+                transform: translate(2px, 2px);
+            }
+
+            25% {
+                transform: translate(-2px, -2px);
+            }
+
+            50% {
+                transform: translate(2px, -2px);
+            }
+
+            75% {
+                transform: translate(-2px, 2px);
+            }
+
+            100% {
+                transform: translate(0, 0);
+            }
+        }
+
+        /* Bars */
+        .bar-container {
+            background: #222;
+            height: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.2s linear;
+        }
+
+        /* Text Effects */
+        .highlight-dust {
+            color: #fbbf24;
+            text-shadow: 0 0 5px rgba(251, 191, 36, 0.5);
+        }
+
+        .highlight-essence {
+            color: #f87171;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .hidden-page {
+            display: none !important;
+        }
+
+        /* Floating particles for aesthetics */
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp 10s linear infinite;
+        }
+
+        @keyframes floatUp {
+            from {
+                transform: translateY(100vh);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            to {
+                transform: translateY(-10vh);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden">
+
+    <!-- Background Particles -->
+    <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
+
+    <!-- 1. START SCREEN -->
+    <section id="start-screen" class="text-center p-8 max-w-md w-full z-10 animate-fade-in">
+        <h1 class="text-5xl font-bold mb-2 text-gray-200 tracking-tighter">THE DUST FARM</h1>
+        <p class="text-xs text-gray-500 mb-8 tracking-[0.4em] uppercase">먼지 농장에 오신 것을 환영합니다</p>
+
+        <div class="glass-panel p-6 rounded mb-8 text-left border-l-2 border-yellow-600">
+            <p class="text-sm text-gray-300 mb-4 leading-relaxed font-light">
+                반갑습니다, 관리자님.<br>
+                이곳은 당신의 <span class="highlight-essence">본질(시간)</span>을 태워<br>
+                <span class="highlight-dust">먼지(성과)</span>를 생산하는 농장입니다.
+            </p>
+            <div class="text-xs text-gray-500 space-y-2 bg-black/30 p-3 rounded">
+                <p>1. <strong>노동 (채굴):</strong> 먼지를 얻지만, 과열됩니다.</p>
+                <p>2. <strong>멈춤 (냉각):</strong> 과열을 식히지만, 도태됩니다.</p>
+                <p>3. <strong>효율 (거래):</strong> 더 빨리 모으지만, 수명을 깎습니다.</p>
+            </div>
+            <p class="mt-4 text-xs text-center text-gray-400">
+                "당신의 시간은 얼마짜리 먼지입니까?"
+            </p>
+        </div>
+
+        <button onclick="startGame()"
+            class="w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-lg rounded transition border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+            [ 계약 체결 및 채굴 시작 ]
+        </button>
+
+        <div class="glass-panel p-4 rounded mt-6 border border-gray-800">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">명예의 전당 (상위 5명)</h3>
+                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            </div>
+            <ol id="start-leaderboard" class="space-y-2"></ol>
+            <p class="text-[10px] text-gray-500 mt-2">계약 종료 시 기록이 제출되며, 상위 5명만 남습니다.</p>
+        </div>
+    </section>
+
+    <!-- 2. GAME SCREEN -->
+    <section id="game-screen" class="hidden-page w-full h-full max-w-md flex flex-col relative z-10 p-4">
+
+        <!-- Header -->
+        <div class="glass-panel p-4 rounded mb-4 flex justify-between items-center">
+            <div>
+                <span class="text-[10px] text-gray-500 block tracking-widest uppercase">누적 성과 (먼지)</span>
+                <span id="score-display" class="text-3xl font-bold text-yellow-400 font-mono">0 g</span>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] text-gray-500 block tracking-widest uppercase">현재 경쟁 순위</span>
+                <span id="rank-display" class="text-sm text-gray-400 font-mono">집계 중...</span>
+            </div>
+        </div>
+
+        <!-- Status Monitor -->
+        <div class="space-y-4 mb-6 relative p-2">
+
+            <!-- Life (Essence) -->
+            <div>
+                <div class="flex justify-between text-[11px] mb-1">
+                    <span class="text-gray-400">당신의 잔여 수명</span>
+                    <span id="life-text" class="text-gray-400">100.0%</span>
+                </div>
+                <div class="bar-container">
+                    <!-- Max Capacity Marker (Red Zone) -->
+                    <div id="life-cap-marker"
+                        class="absolute top-0 right-0 h-full bg-red-900/40 w-0 transition-all duration-500 border-l border-red-500/50">
+                    </div>
+                    <div id="life-bar" class="bar-fill bg-gradient-to-r from-gray-500 to-white w-full"></div>
+                </div>
+            </div>
+
+            <!-- Heat (Entropy) -->
+            <div>
+                <div class="flex justify-between text-[11px] mb-1">
+                    <span class="text-red-400 font-bold" id="heat-label">탐욕의 열기 (과부하)</span>
+                    <span id="entropy-text" class="text-red-400">0%</span>
+                </div>
+                <div class="bar-container border border-red-900/30">
+                    <div id="entropy-bar" class="bar-fill bg-red-600 w-0"></div>
+                </div>
+                <p id="system-msg" class="text-[10px] text-gray-600 mt-1 text-right h-4">시스템 정상 가동 중</p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <!-- WORK -->
+            <button id="btn-work" onclick="actionWork()"
+                class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-yellow-900/20 group">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition">⛏️</span>
+                <span class="font-bold text-yellow-400">노동 (채굴)</span>
+                <span class="text-[10px] text-gray-500 mt-1">성과 획득 / <span class="text-red-400">+과열</span></span>
+            </button>
+
+            <!-- REST -->
+            <button id="btn-rest" onclick="actionRest()"
+                class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-blue-900/20 group">
+                <span class="text-2xl mb-1 group-hover:scale-110 transition">🧊</span>
+                <span class="font-bold text-blue-400">잠깐 멈춤</span>
+                <span class="text-[10px] text-gray-500 mt-1">열기 냉각 / <span class="text-yellow-600">시간 낭비</span></span>
+            </button>
+        </div>
+
+        <!-- Shop -->
+        <div class="flex-1 glass-panel rounded p-4 overflow-y-auto border-t-2 border-yellow-900/30">
+            <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest border-b border-gray-700 pb-2">
+                효율성의 제단 (거래소)</h3>
+
+            <div class="space-y-2">
+                <button onclick="buyUpgrade(1)" id="upg-1"
+                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                    <div class="text-left">
+                        <div class="font-bold text-xs text-gray-300">쌍곡괭이질 (멀티태스킹)</div>
+                        <div class="text-[9px] text-gray-500">채굴량 2배 / 열기 +10%</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-yellow-500">60 g</div>
+                        <div class="text-[9px] text-red-500">최대 수명 -10%</div>
+                    </div>
+                </button>
+
+                <button onclick="buyUpgrade(2)" id="upg-2"
+                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                    <div class="text-left">
+                        <div class="font-bold text-xs text-gray-300">자동 채굴 봇</div>
+                        <div class="text-[9px] text-gray-500">자동 채굴 / 지속적 과열</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-yellow-500">250 g</div>
+                        <div class="text-[9px] text-red-500">최대 수명 -20%</div>
+                    </div>
+                </button>
+
+                <button onclick="buyUpgrade(3)" id="upg-3"
+                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                    <div class="text-left">
+                        <div class="font-bold text-xs text-gray-300">신경 가속 (도파민)</div>
+                        <div class="text-[9px] text-gray-500">채굴량 3배 / 치명적 과열</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-yellow-500">700 g</div>
+                        <div class="text-[9px] text-red-500">최대 수명 -30%</div>
+                    </div>
+                </button>
+            </div>
+            <p class="text-[9px] text-center text-gray-600 mt-3 italic">"거래된 수명은 환불되지 않습니다."</p>
+        </div>
+
+    </section>
+
+    <!-- 3. END SCREEN -->
+    <section id="end-screen" class="hidden-page text-center p-8 max-w-md w-full z-10 flex flex-col items-center">
+
+        <h2 class="text-4xl font-black text-gray-200 mb-2">계약 종료</h2>
+        <div class="w-16 h-1 bg-red-600 mb-8"></div>
+
+        <!-- Added Sisyphus Art -->
+        <div class="mb-6 relative group">
+            <img src="./assets/sisyphus.png" alt="Endless Labor"
+                class="w-48 h-48 mx-auto rounded border border-gray-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
+                style="image-rendering: pixelated;">
+            <div
+                class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
+            </div>
+            <p
+                class="absolute bottom-2 inset-x-0 text-[10px] text-gray-600 italic opacity-0 group-hover:opacity-100 transition duration-500">
+                "우리는 상상해야 한다. 시시포스가 행복하다고."</p>
+        </div>
+
+        <div class="glass-panel p-6 rounded w-full text-left mb-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                <span class="text-xs text-gray-400 uppercase">최종 성과 (먼지)</span>
+                <span class="text-2xl font-bold text-yellow-400" id="end-score">0 g</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                    <span class="block text-gray-500">종료 사유</span>
+                    <span class="block text-red-400 font-bold mt-1" id="end-reason">알 수 없음</span>
+                </div>
+                <div class="text-right">
+                    <span class="block text-gray-500">지불한 수명</span>
+                    <span class="block text-gray-300 font-bold mt-1" id="end-sacrifice">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="final-message" class="text-sm font-serif italic text-gray-400 leading-relaxed min-h-[80px] px-4">
+            <!-- Messages will be injected here -->
+        </div>
+
+        <div class="glass-panel p-4 rounded w-full mt-6 space-y-3 border border-gray-800">
+            <p class="text-xs text-gray-400">계약 종료 후, 이름을 남기면 명예의 전당에 기록됩니다.</p>
+            <input id="player-name" type="text" maxlength="32" placeholder="익명 노동자"
+                class="w-full bg-black/40 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500" />
+            <button id="submit-score" onclick="submitScore()"
+                class="w-full py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-sm rounded transition border border-yellow-500/30">명예의
+                전당에 올리기</button>
+            <p id="submit-status" class="text-[11px] text-gray-500">상위 5명의 기록만 보존됩니다.</p>
+        </div>
+
+        <div class="glass-panel p-4 rounded w-full mt-4 border border-gray-800">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">현재 명예의 전당</h3>
+                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            </div>
+            <ol id="end-leaderboard" class="space-y-2 w-full"></ol>
+        </div>
+
+        <button onclick="location.reload()"
+            class="mt-8 text-xs text-gray-500 border border-gray-700 px-8 py-3 hover:bg-gray-800 hover:text-white transition uppercase tracking-widest">
+            새 계약 체결 (다시 하기)
+        </button>
+    </section>
+
+    <script type="module">
+        // DYNAMIC IMPORTS: To prevent the entire game from breaking if Firebase fails to load.
+        let db = null;
+        let collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp;
+        let isOffline = false;
+
+        async function initNetworkServices() {
+            try {
+                // Import local firebase configuration
+                const fbConfig = await import('./firebase.js');
+                db = fbConfig.db;
+
+                // Import Firestore SDK
+                const firestoreSdk = await import('https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js');
+                collection = firestoreSdk.collection;
+                addDoc = firestoreSdk.addDoc;
+                getDocs = firestoreSdk.getDocs;
+                query = firestoreSdk.query;
+                orderBy = firestoreSdk.orderBy;
+                limit = firestoreSdk.limit;
+                serverTimestamp = firestoreSdk.serverTimestamp;
+
+                console.log("Network Services Initialized");
+                refreshLeaderboard(); // Load initial data
+            } catch (err) {
+                console.error("Network Init Failed (Offline Mode)", err);
+                isOffline = true;
+                renderLeaderboardError(els.leaderboard.start, "오프라인 모드 (연결 불가)");
+                renderLeaderboardError(els.leaderboard.end, "오프라인 모드 (연결 불가)");
+                els.rank.innerText = "로컬 플레이";
+
+                // Disable submit button in offline mode
+                if (els.submitBtn) els.submitBtn.disabled = true;
+                if (els.submitStatus) els.submitStatus.innerText = "네트워크 연결이 필요합니다.";
+            }
+        }
+
+        // Create background particles
+        const pc = document.getElementById('particles-container');
+        for (let i = 0; i < 20; i++) {
+            let d = document.createElement('div');
+            d.className = 'particle';
+            d.style.left = Math.random() * 100 + '%';
+            d.style.width = Math.random() * 4 + 2 + 'px';
+            d.style.height = d.style.width;
+            d.style.animationDuration = Math.random() * 10 + 10 + 's';
+            d.style.animationDelay = Math.random() * 5 + 's';
+            pc.appendChild(d);
+        }
+
+        /* --- CONFIGURATION --- */
+        const TICK_RATE = 100; // 0.1s tick
+        const BASE_LIFE_DRAIN = 0.03; // Base life loss per tick
+
+        /* --- STATE --- */
+        let state = {
+            active: false,
+            score: 0,
+            life: 100.0,
+            maxLife: 100,
+            heat: 0,
+
+            // Multipliers
+            clickPower: 1,
+            autoRate: 0,
+            globalMult: 1,
+            heatGenMult: 1
+        };
+
+        let leaderboardData = [];
+        let hasSubmittedScore = false;
+        let leaderboardPoll = null;
+        let loops = { game: null, auto: null };
+
+        const els = {
+            screens: { start: document.getElementById('start-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen') },
+            score: document.getElementById('score-display'),
+            rank: document.getElementById('rank-display'),
+            leaderboard: { start: document.getElementById('start-leaderboard'), end: document.getElementById('end-leaderboard') },
+            lifeBar: document.getElementById('life-bar'),
+            lifeText: document.getElementById('life-text'),
+            lifeCap: document.getElementById('life-cap-marker'),
+            entropyBar: document.getElementById('entropy-bar'),
+            entropyText: document.getElementById('entropy-text'),
+            sysMsg: document.getElementById('system-msg'),
+            gameBody: document.getElementById('game-screen'),
+            upgrades: [document.getElementById('upg-1'), document.getElementById('upg-2'), document.getElementById('upg-3')],
+            playerName: document.getElementById('player-name'),
+            submitBtn: document.getElementById('submit-score'),
+            submitStatus: document.getElementById('submit-status')
+        };
+
+        // Expose functions to window for onclick handlers because module scope is not global
+        window.startGame = startGame;
+        window.actionWork = actionWork;
+        window.actionRest = actionRest;
+        window.buyUpgrade = buyUpgrade;
+        window.submitScore = submitScore;
+        window.gameOver = gameOver;
+
+        async function refreshLeaderboard() {
+            if (isOffline || !db || !collection) {
+                if (isOffline) console.log("Skipping leaderboard refresh (Offline)");
+                return;
+            }
+            try {
+                const q = query(
+                    collection(db, 'leaderboard'),
+                    orderBy('score', 'desc'),
+                    limit(5)
+                );
+
+                const querySnapshot = await getDocs(q);
+                leaderboardData = [];
+                querySnapshot.forEach((doc) => {
+                    leaderboardData.push(doc.data());
+                });
+
+                renderLeaderboard(leaderboardData, els.leaderboard.start);
+                renderLeaderboard(leaderboardData, els.leaderboard.end);
+                updateRankDisplay();
+            } catch (err) {
+                console.error('Leaderboard fetch failed', err);
+                const msg = err.code === 'permission-denied' ? '권한 부족 (Firestore 규칙 확인)' : '불러오기 실패';
+                renderLeaderboardError(els.leaderboard.start, msg);
+                renderLeaderboardError(els.leaderboard.end, msg);
+                els.rank.innerText = '집계 불가';
+            }
+        }
+
+        function renderLeaderboard(entries, target) {
+            if (!target) return;
+            target.innerHTML = '';
+
+            if (!entries || entries.length === 0) {
+                const empty = document.createElement('li');
+                empty.className = 'text-[11px] text-gray-500';
+                empty.innerText = '기록 없음';
+                target.appendChild(empty);
+                return;
+            }
+
+            entries.forEach((entry, idx) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center text-sm text-gray-200 bg-black/30 border border-gray-800 rounded px-3 py-2';
+                li.innerHTML = `<span class="font-mono text-yellow-400">${idx + 1}위</span><span class="flex-1 ml-2 truncate">${entry.name}</span><span class="font-mono text-gray-400">${Number(entry.score).toLocaleString()} g</span>`;
+                target.appendChild(li);
+            });
+        }
+
+        function renderLeaderboardError(target, msg = '리더보드 오류') {
+            if (!target) return;
+            target.innerHTML = '';
+            const li = document.createElement('li');
+            li.className = 'text-[11px] text-red-400';
+            li.innerText = msg;
+            target.appendChild(li);
+        }
+
+        function updateRankDisplay() {
+            if (!els.rank) return;
+            if (!leaderboardData.length) {
+                els.rank.innerText = '집계 중';
+                return;
+            }
+            const top = leaderboardData[0];
+            els.rank.innerText = `${top.name} - ${Number(top.score).toLocaleString()} g`;
+        }
+
+        /* --- CORE LOGIC --- */
+        function startGame() {
+            els.screens.start.classList.add('hidden-page');
+            els.screens.game.classList.remove('hidden-page');
+            state.active = true;
+
+            loops.game = setInterval(gameTick, TICK_RATE);
+            loops.auto = setInterval(autoTick, 1000);
+        }
+
+        function gameTick() {
+            if (!state.active) return;
+
+            // 1. Life Drain Logic
+            let currentDrain = BASE_LIFE_DRAIN;
+
+            if (state.heat > 50) currentDrain *= 1.5;
+            if (state.heat > 80) currentDrain *= 2.5;
+            if (state.heat >= 99) currentDrain *= 5.0; // Critical
+
+            state.life -= currentDrain;
+
+            // 2. Heat Recovery
+            if (state.heat > 0) state.heat -= 0.15;
+            // 3. Game Over Checks
+            if (state.heat >= 100) gameOver("엔진 폭발 (과도한 욕심)");
+            if (state.life <= 0) gameOver("본질 소멸 (과로사)");
+
+            updateUI();
+        }
+
+        function autoTick() {
+            if (!state.active) return;
+            if (state.autoRate > 0) {
+                state.score += (state.autoRate * state.globalMult);
+                state.heat += (state.autoRate * 0.2);
+            }
+        }
+
+        function updateUI() {
+            if (!state.active) return;
+
+            // Score & Rank
+            els.score.innerText = Math.floor(state.score).toLocaleString() + " g";
+            updateRankDisplay();
+
+            // Life Bar
+            let lifePct = Math.max(0, state.life);
+            let displayLife = (state.life / 100) * 100;
+            els.lifeBar.style.width = `${displayLife}%`;
+            els.lifeText.innerText = `${lifePct.toFixed(1)}%`;
+            els.lifeCap.style.width = `${100 - state.maxLife}%`;
+
+            // Heat Bar
+            let heatPct = Math.min(100, Math.max(0, state.heat));
+            els.entropyBar.style.width = `${heatPct}%`;
+            els.entropyText.innerText = `${Math.floor(heatPct)}%`;
+
+            // Visual Feedback based on Heat
+            if (state.heat > 80) {
+                els.sysMsg.innerText = "⚠ 경고: 폭발 임박 (위험)";
+                els.sysMsg.className = "text-[10px] mt-1 text-right font-bold text-red-500 blink";
+                els.gameBody.className = "w-full h-full max-w-md flex flex-col relative z-10 p-4 shake-hard";
+            } else if (state.heat > 50) {
+                els.sysMsg.innerText = "주의: 효율 급감 중";
+                els.sysMsg.className = "text-[10px] mt-1 text-right text-yellow-500";
+                els.gameBody.className = "w-full h-full max-w-md flex flex-col relative z-10 p-4 shake-mild";
+            } else {
+                els.sysMsg.innerText = "시스템 정상 가동 중";
+                els.sysMsg.className = "text-[10px] mt-1 text-right text-green-700";
+                els.gameBody.className = "w-full h-full max-w-md flex flex-col relative z-10 p-4";
+            }
+
+            // Shop Buttons
+            checkAfford(0, 60);
+            checkAfford(1, 250);
+            checkAfford(2, 700);
+        }
+
+        function checkAfford(idx, cost) {
+            let btn = els.upgrades[idx];
+            let canAfford = state.score >= cost && state.maxLife > (idx + 1) * 10 + 5;
+            btn.disabled = !canAfford;
+            if (!canAfford) btn.style.opacity = "0.4";
+            else btn.style.opacity = "1";
+        }
+
+        /* --- ACTIONS --- */
+        function actionWork() {
+            if (!state.active) return;
+            state.score += (state.clickPower * state.globalMult);
+            state.heat += (3 * state.heatGenMult);
+            updateUI();
+        }
+
+        function actionRest() {
+            if (!state.active) return;
+            state.heat = Math.max(0, state.heat - 15);
+            if (state.score > 0) state.score = Math.max(0, state.score - 2);
+            updateUI();
+        }
+
+        function buyUpgrade(type) {
+            if (!state.active) return;
+            if (type === 1) { // Pickaxe
+                if (state.score < 60) return;
+                state.score -= 60;
+                state.maxLife -= 10;
+                state.clickPower += 2;
+                state.heatGenMult += 0.2;
+            } else if (type === 2) { // Auto Bot
+                if (state.score < 250) return;
+                state.score -= 250;
+                state.maxLife -= 20;
+                state.autoRate += 5;
+            } else if (type === 3) { // Neural
+                if (state.score < 700) return;
+                state.score -= 700;
+                state.maxLife -= 30;
+                state.globalMult += 1;
+                state.heatGenMult += 0.5;
+            }
+            state.life = Math.min(state.life, state.maxLife);
+            updateUI();
+        }
+
+        function resetSubmissionUI() {
+            hasSubmittedScore = false;
+            if (els.submitBtn) els.submitBtn.disabled = false;
+            if (els.submitStatus) {
+                els.submitStatus.innerText = '상위 5명의 기록만 보존됩니다.';
+                els.submitStatus.className = 'text-[11px] text-gray-500';
+            }
+        }
+
+        async function submitScore() {
+            if (hasSubmittedScore || !els.submitBtn) return;
+
+            els.submitBtn.disabled = true;
+            if (els.submitStatus) {
+                els.submitStatus.innerText = '기록 전송 중... (최대 5초)';
+                els.submitStatus.className = 'text-[11px] text-gray-400';
+            }
+
+            try {
+                if (isOffline || !db) throw new Error("네트워크 연결 불가");
+
+                const name = (els.playerName?.value || '').trim() || '익명 노동자';
+                const score = Math.floor(state.score);
+
+                // Add a timeout to prevent infinite hanging
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('전송 시간 초과 (네트워크 또는 권한 문제)')), 5000)
+                );
+
+                await Promise.race([
+                    addDoc(collection(db, "leaderboard"), {
+                        name: name,
+                        score: score,
+                        submittedAt: serverTimestamp()
+                    }),
+                    timeoutPromise
+                ]);
+
+                hasSubmittedScore = true;
+
+                // Refresh to show new score
+                await refreshLeaderboard();
+
+                if (els.submitStatus) {
+                    els.submitStatus.innerText = '명예의 전당에 기록되었습니다.';
+                    els.submitStatus.className = 'text-[11px] text-green-400';
+                }
+            } catch (err) {
+                console.error('Submit failed', err);
+                let failMsg = '기록 실패';
+                if (err.code === 'permission-denied') failMsg = '권한 거부됨 (Firestore 규칙)';
+                else if (err.message.includes('시간 초과')) failMsg = '응답 없음 (Firestore 설정 확인)';
+                else failMsg = '오류: ' + err.message;
+
+                if (els.submitStatus) {
+                    els.submitStatus.innerText = failMsg;
+                    els.submitStatus.className = 'text-[11px] text-red-400';
+                }
+                els.submitBtn.disabled = false;
+            }
+        }
+
+        /* --- END GAME --- */
+        function gameOver(reason) {
+            state.active = false;
+            clearInterval(loops.game);
+            clearInterval(loops.auto);
+            els.gameBody.className = "w-full h-full max-w-md flex flex-col relative z-10 p-4"; // Stop shake
+
+            els.screens.game.classList.add('hidden-page');
+            els.screens.end.classList.remove('hidden-page');
+
+            resetSubmissionUI();
+            if (els.playerName) els.playerName.value = '';
+            refreshLeaderboard();
+
+            document.getElementById('end-score').innerText = Math.floor(state.score).toLocaleString() + " g";
+            document.getElementById('end-reason').innerText = reason;
+            document.getElementById('end-sacrifice').innerText = (100 - state.maxLife) + "%";
+
+            // Narrative Logic
+            let msg = "";
+            if (state.score < 500) {
+                msg = "욕심 없는 삶이었으나,<br>남들이 보기엔 그저 게으른 행인이었습니다.<br>당신의 시간은 정말 당신의 것이었습니까?";
+            } else if (state.score < 3000) {
+                msg = "적당히 일하고 적당히 닳았습니다.<br>이 먼지더미를 위해 당신은 청춘을 바쳤습니다.<br>당신은 대체 가능한 부품이었습니다.";
+            } else {
+                msg = "위대한 성과입니다! 엄청난 먼지 산이네요.<br>그 대가로 당신은 자신을 완벽하게 태워 없앴습니다.<br>기계가 된 기분이 어떠신가요?";
+            }
+
+            // Typing Effect
+            let i = 0;
+            const target = document.getElementById('final-message');
+            target.innerHTML = "";
+            const timer = setInterval(() => {
+                if (i < msg.length) {
+                    let char = msg.charAt(i) === '<' ? '<br>' : msg.charAt(i);
+                    if (char === '<br>') i += 3; // Skip <br> tags roughly
+                    target.innerHTML = msg.substring(0, i + 1);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 30);
+        }
+
+
+
+        // Initialize
+        console.log("Game Module Initialized");
+
+        // Robust Start Button Binding (Fix for inline onclick issues)
+        const startBtn = document.querySelector('#start-screen button');
+        if (startBtn) {
+            startBtn.onclick = null; // Clear inline to prevent double firing if logic differs
+            startBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log("Start Button Clicked");
+                startGame();
+            });
+        } else {
+            console.error("Start button not found!");
+        }
+
+        // Start polling logic only if connected? Or let the poller handle checks.
+        function startLeaderboardPolling(intervalMs = 10000) {
+            if (leaderboardPoll) clearInterval(leaderboardPoll);
+
+            // Initial load is handled in initNetworkServices
+            leaderboardPoll = setInterval(refreshLeaderboard, intervalMs);
+        }
+
+        // Initialize Services asynchronously without blocking game logic
+        initNetworkServices();
+        startLeaderboardPolling();
+    </script>
+</body>
+
+</html>
