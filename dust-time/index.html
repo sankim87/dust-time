@@ -156,226 +156,233 @@
     </style>
 </head>
 
-<body class="h-[100dvh] w-screen flex flex-col items-center justify-start relative overflow-hidden bg-[#111]">
+<body class="h-[100dvh] w-screen relative overflow-hidden bg-[#111]">
 
     <!-- Background Particles -->
     <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
 
     <!-- 1. START SCREEN -->
-    <section id="start-screen" class="text-center p-8 max-w-md w-full z-10 animate-fade-in">
-        <h1 class="text-5xl font-bold mb-2 text-gray-200 tracking-tighter">THE DUST FARM</h1>
-        <p class="text-xs text-gray-500 mb-8 tracking-[0.4em] uppercase">먼지 농장에 오신 것을 환영합니다</p>
+    <section id="start-screen" class="absolute inset-0 z-10 overflow-y-auto pt-safe-top pb-safe-bottom">
+        <div class="min-h-full flex flex-col items-center justify-center p-8 animate-fade-in">
+            <h1 class="text-5xl font-bold mb-2 text-gray-200 tracking-tighter">THE DUST FARM</h1>
+            <p class="text-xs text-gray-500 mb-8 tracking-[0.4em] uppercase">먼지 농장에 오신 것을 환영합니다</p>
 
-        <div class="glass-panel p-6 rounded mb-8 text-left border-l-2 border-yellow-600">
-            <p class="text-sm text-gray-300 mb-4 leading-relaxed font-light">
-                반갑습니다, 관리자님.<br>
-                이곳은 당신의 <span class="highlight-essence">본질(시간)</span>을 태워<br>
-                <span class="highlight-dust">먼지(성과)</span>를 생산하는 농장입니다.
-            </p>
-            <div class="text-xs text-gray-500 space-y-2 bg-black/30 p-3 rounded">
-                <p>1. <strong>노동 (채굴):</strong> 먼지를 얻지만, 과열됩니다.</p>
-                <p>2. <strong>멈춤 (냉각):</strong> 과열을 식히지만, 도태됩니다.</p>
-                <p>3. <strong>효율 (거래):</strong> 더 빨리 모으지만, 수명을 깎습니다.</p>
+            <div class="glass-panel p-6 rounded mb-8 text-left border-l-2 border-yellow-600">
+                <p class="text-sm text-gray-300 mb-4 leading-relaxed font-light">
+                    반갑습니다, 관리자님.<br>
+                    이곳은 당신의 <span class="highlight-essence">본질(시간)</span>을 태워<br>
+                    <span class="highlight-dust">먼지(성과)</span>를 생산하는 농장입니다.
+                </p>
+                <div class="text-xs text-gray-500 space-y-2 bg-black/30 p-3 rounded">
+                    <p>1. <strong>노동 (채굴):</strong> 먼지를 얻지만, 과열됩니다.</p>
+                    <p>2. <strong>멈춤 (냉각):</strong> 과열을 식히지만, 도태됩니다.</p>
+                    <p>3. <strong>효율 (거래):</strong> 더 빨리 모으지만, 수명을 깎습니다.</p>
+                </div>
+                <p class="mt-4 text-xs text-center text-gray-400">
+                    "당신의 시간은 얼마짜리 먼지입니까?"
+                </p>
             </div>
-            <p class="mt-4 text-xs text-center text-gray-400">
-                "당신의 시간은 얼마짜리 먼지입니까?"
-            </p>
-        </div>
 
-        <button onclick="startGame()"
-            class="w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-lg rounded transition border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-            [ 계약 체결 및 채굴 시작 ]
-        </button>
+            <button onclick="startGame()"
+                class="w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-lg rounded transition border border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                [ 계약 체결 및 채굴 시작 ]
+            </button>
 
-        <div class="glass-panel p-4 rounded mt-6 border border-gray-800">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">명예의 전당 (상위 5명)</h3>
-                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            <div class="glass-panel p-4 rounded mt-6 border border-gray-800 w-full">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">명예의 전당 (상위 5명)</h3>
+                    <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+                </div>
+                <ol id="start-leaderboard" class="space-y-2"></ol>
+                <p class="text-[10px] text-gray-500 mt-2">계약 종료 시 기록이 제출되며, 상위 5명만 남습니다.</p>
             </div>
-            <ol id="start-leaderboard" class="space-y-2"></ol>
-            <p class="text-[10px] text-gray-500 mt-2">계약 종료 시 기록이 제출되며, 상위 5명만 남습니다.</p>
         </div>
     </section>
 
     <!-- 2. GAME SCREEN -->
-    <section id="game-screen"
-        class="hidden-page w-full h-full max-w-md flex flex-col relative z-10 p-4 pt-safe-top pb-safe-bottom">
+    <section id="game-screen" class="hidden-page absolute inset-0 z-10 overflow-y-auto pt-safe-top pb-safe-bottom">
+        <div class="min-h-full flex flex-col items-center justify-start p-4 w-full max-w-md mx-auto">
 
-        <!-- Header -->
-        <div class="glass-panel p-4 rounded mb-4 flex justify-between items-center">
-            <div>
-                <span class="text-[10px] text-gray-500 block tracking-widest uppercase">누적 성과 (먼지)</span>
-                <span id="score-display" class="text-3xl font-bold text-yellow-400 font-mono">0 g</span>
-            </div>
-            <div class="text-right">
-                <span class="text-[10px] text-gray-500 block tracking-widest uppercase">현재 경쟁 순위</span>
-                <span id="rank-display" class="text-sm text-gray-400 font-mono">집계 중...</span>
-            </div>
-        </div>
-
-        <!-- Status Monitor -->
-        <div class="space-y-4 mb-6 relative p-2">
-
-            <!-- Life (Essence) -->
-            <div>
-                <div class="flex justify-between text-[11px] mb-1">
-                    <span class="text-gray-400">당신의 잔여 수명</span>
-                    <span id="life-text" class="text-gray-400">100.0%</span>
+            <!-- Header -->
+            <div class="glass-panel p-4 rounded mb-4 flex justify-between items-center">
+                <div>
+                    <span class="text-[10px] text-gray-500 block tracking-widest uppercase">누적 성과 (먼지)</span>
+                    <span id="score-display" class="text-3xl font-bold text-yellow-400 font-mono">0 g</span>
                 </div>
-                <div class="bar-container">
-                    <!-- Max Capacity Marker (Red Zone) -->
-                    <div id="life-cap-marker"
-                        class="absolute top-0 right-0 h-full bg-red-900/40 w-0 transition-all duration-500 border-l border-red-500/50">
+                <div class="text-right">
+                    <span class="text-[10px] text-gray-500 block tracking-widest uppercase">현재 경쟁 순위</span>
+                    <span id="rank-display" class="text-sm text-gray-400 font-mono">집계 중...</span>
+                </div>
+            </div>
+
+            <!-- Status Monitor -->
+            <div class="space-y-4 mb-6 relative p-2">
+
+                <!-- Life (Essence) -->
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1">
+                        <span class="text-gray-400">당신의 잔여 수명</span>
+                        <span id="life-text" class="text-gray-400">100.0%</span>
                     </div>
-                    <div id="life-bar" class="bar-fill bg-gradient-to-r from-gray-500 to-white w-full"></div>
+                    <div class="bar-container">
+                        <!-- Max Capacity Marker (Red Zone) -->
+                        <div id="life-cap-marker"
+                            class="absolute top-0 right-0 h-full bg-red-900/40 w-0 transition-all duration-500 border-l border-red-500/50">
+                        </div>
+                        <div id="life-bar" class="bar-fill bg-gradient-to-r from-gray-500 to-white w-full"></div>
+                    </div>
+                </div>
+
+                <!-- Heat (Entropy) -->
+                <div>
+                    <div class="flex justify-between text-[11px] mb-1">
+                        <span class="text-red-400 font-bold" id="heat-label">탐욕의 열기 (과부하)</span>
+                        <span id="entropy-text" class="text-red-400">0%</span>
+                    </div>
+                    <div class="bar-container border border-red-900/30">
+                        <div id="entropy-bar" class="bar-fill bg-red-600 w-0"></div>
+                    </div>
+                    <p id="system-msg" class="text-[10px] text-gray-600 mt-1 text-right h-4">시스템 정상 가동 중</p>
                 </div>
             </div>
 
-            <!-- Heat (Entropy) -->
-            <div>
-                <div class="flex justify-between text-[11px] mb-1">
-                    <span class="text-red-400 font-bold" id="heat-label">탐욕의 열기 (과부하)</span>
-                    <span id="entropy-text" class="text-red-400">0%</span>
-                </div>
-                <div class="bar-container border border-red-900/30">
-                    <div id="entropy-bar" class="bar-fill bg-red-600 w-0"></div>
-                </div>
-                <p id="system-msg" class="text-[10px] text-gray-600 mt-1 text-right h-4">시스템 정상 가동 중</p>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <!-- WORK -->
-            <button id="btn-work" onclick="actionWork()"
-                class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-yellow-900/20 group">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition">⛏️</span>
-                <span class="font-bold text-yellow-400">노동 (채굴)</span>
-                <span class="text-[10px] text-gray-500 mt-1">성과 획득 / <span class="text-red-400">+과열</span></span>
-            </button>
-
-            <!-- REST -->
-            <button id="btn-rest" onclick="actionRest()"
-                class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-blue-900/20 group">
-                <span class="text-2xl mb-1 group-hover:scale-110 transition">🧊</span>
-                <span class="font-bold text-blue-400">잠깐 멈춤</span>
-                <span class="text-[10px] text-gray-500 mt-1">열기 냉각 / <span class="text-yellow-600">시간 낭비</span></span>
-            </button>
-        </div>
-
-        <!-- Shop -->
-        <div class="flex-1 glass-panel rounded p-4 overflow-y-auto border-t-2 border-yellow-900/30">
-            <h3 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest border-b border-gray-700 pb-2">
-                효율성의 제단 (거래소)</h3>
-
-            <div class="space-y-2">
-                <button onclick="buyUpgrade(1)" id="upg-1"
-                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
-                    <div class="text-left">
-                        <div class="font-bold text-xs text-gray-300">쌍곡괭이질 (멀티태스킹)</div>
-                        <div class="text-[9px] text-gray-500">채굴량 2배 / 열기 +10%</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-yellow-500">60 g</div>
-                        <div class="text-[9px] text-red-500">최대 수명 -10%</div>
-                    </div>
+            <!-- Actions -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <!-- WORK -->
+                <button id="btn-work" onclick="actionWork()"
+                    class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-yellow-900/20 group">
+                    <span class="text-2xl mb-1 group-hover:scale-110 transition">⛏️</span>
+                    <span class="font-bold text-yellow-400">노동 (채굴)</span>
+                    <span class="text-[10px] text-gray-500 mt-1">성과 획득 / <span class="text-red-400">+과열</span></span>
                 </button>
 
-                <button onclick="buyUpgrade(2)" id="upg-2"
-                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
-                    <div class="text-left">
-                        <div class="font-bold text-xs text-gray-300">자동 채굴 봇</div>
-                        <div class="text-[9px] text-gray-500">자동 채굴 / 지속적 과열</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-yellow-500">250 g</div>
-                        <div class="text-[9px] text-red-500">최대 수명 -20%</div>
-                    </div>
-                </button>
-
-                <button onclick="buyUpgrade(3)" id="upg-3"
-                    class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
-                    <div class="text-left">
-                        <div class="font-bold text-xs text-gray-300">신경 가속 (도파민)</div>
-                        <div class="text-[9px] text-gray-500">채굴량 3배 / 치명적 과열</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-yellow-500">700 g</div>
-                        <div class="text-[9px] text-red-500">최대 수명 -30%</div>
-                    </div>
+                <!-- REST -->
+                <button id="btn-rest" onclick="actionRest()"
+                    class="btn-action glass-panel p-6 rounded flex flex-col items-center justify-center hover:bg-gray-800 border-gray-600 active:bg-blue-900/20 group">
+                    <span class="text-2xl mb-1 group-hover:scale-110 transition">🧊</span>
+                    <span class="font-bold text-blue-400">잠깐 멈춤</span>
+                    <span class="text-[10px] text-gray-500 mt-1">열기 냉각 / <span class="text-yellow-600">시간
+                            낭비</span></span>
                 </button>
             </div>
-            <p class="text-[9px] text-center text-gray-600 mt-3 italic">"거래된 수명은 환불되지 않습니다."</p>
-        </div>
 
+            <!-- Shop -->
+            <div class="flex-1 glass-panel rounded p-4 overflow-y-auto border-t-2 border-yellow-900/30">
+                <h3
+                    class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest border-b border-gray-700 pb-2">
+                    효율성의 제단 (거래소)</h3>
+
+                <div class="space-y-2">
+                    <button onclick="buyUpgrade(1)" id="upg-1"
+                        class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                        <div class="text-left">
+                            <div class="font-bold text-xs text-gray-300">쌍곡괭이질 (멀티태스킹)</div>
+                            <div class="text-[9px] text-gray-500">채굴량 2배 / 열기 +10%</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-yellow-500">60 g</div>
+                            <div class="text-[9px] text-red-500">최대 수명 -10%</div>
+                        </div>
+                    </button>
+
+                    <button onclick="buyUpgrade(2)" id="upg-2"
+                        class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                        <div class="text-left">
+                            <div class="font-bold text-xs text-gray-300">자동 채굴 봇</div>
+                            <div class="text-[9px] text-gray-500">자동 채굴 / 지속적 과열</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-yellow-500">250 g</div>
+                            <div class="text-[9px] text-red-500">최대 수명 -20%</div>
+                        </div>
+                    </button>
+
+                    <button onclick="buyUpgrade(3)" id="upg-3"
+                        class="w-full p-3 bg-black/40 border border-gray-800 rounded flex justify-between items-center hover:border-yellow-600 transition disabled:opacity-30">
+                        <div class="text-left">
+                            <div class="font-bold text-xs text-gray-300">신경 가속 (도파민)</div>
+                            <div class="text-[9px] text-gray-500">채굴량 3배 / 치명적 과열</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-yellow-500">700 g</div>
+                            <div class="text-[9px] text-red-500">최대 수명 -30%</div>
+                        </div>
+                    </button>
+                </div>
+                <p class="text-[9px] text-center text-gray-600 mt-3 italic">"거래된 수명은 환불되지 않습니다."</p>
+            </div>
+        </div>
     </section>
 
     <!-- 3. END SCREEN -->
     <!-- 3. END SCREEN -->
     <section id="end-screen"
-        class="hidden-page absolute inset-0 overflow-y-auto text-center p-6 w-full z-20 flex flex-col items-center bg-[#111]">
-        <!-- Added pt-8 to ensure top content isn't under any browser UI, although absolute inset should handle it -->
-        <h2 class="text-3xl font-black text-gray-200 mb-2 mt-4">계약 종료</h2>
-        <div class="w-16 h-1 bg-red-600 mb-8"></div>
+        class="hidden-page absolute inset-0 z-20 overflow-y-auto pt-safe-top pb-safe-bottom bg-[#111]">
+        <div class="min-h-full flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto">
+
+            <!-- Added pt-8 to ensure top content isn't under any browser UI, although absolute inset should handle it -->
+            <h2 class="text-3xl font-black text-gray-200 mb-2 mt-4">계약 종료</h2>
+            <div class="w-16 h-1 bg-red-600 mb-8"></div>
 
 
-        <!-- Added Sisyphus Art -->
-        <div class="mb-4 relative group shrink-0">
-            <img src="./assets/sisyphus.png" alt="Endless Labor"
-                class="w-40 h-40 mx-auto rounded border border-gray-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
-                style="image-rendering: pixelated;">
-            <div
-                class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
-            </div>
-            <p
-                class="absolute bottom-2 inset-x-0 text-[10px] text-gray-600 italic opacity-0 group-hover:opacity-100 transition duration-500">
-                "우리는 상상해야 한다. 시시포스가 행복하다고."</p>
-        </div>
-
-        <div class="glass-panel p-6 rounded w-full text-left mb-6 space-y-4">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                <span class="text-xs text-gray-400 uppercase">최종 성과 (먼지)</span>
-                <span class="text-2xl font-bold text-yellow-400" id="end-score">0 g</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                    <span class="block text-gray-500">종료 사유</span>
-                    <span class="block text-red-400 font-bold mt-1" id="end-reason">알 수 없음</span>
+            <!-- Added Sisyphus Art -->
+            <div class="mb-4 relative group shrink-0">
+                <img src="./assets/sisyphus.png" alt="Endless Labor"
+                    class="w-40 h-40 mx-auto rounded border border-gray-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
+                    style="image-rendering: pixelated;">
+                <div
+                    class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
                 </div>
-                <div class="text-right">
-                    <span class="block text-gray-500">지불한 수명</span>
-                    <span class="block text-gray-300 font-bold mt-1" id="end-sacrifice">0%</span>
+                <p
+                    class="absolute bottom-2 inset-x-0 text-[10px] text-gray-600 italic opacity-0 group-hover:opacity-100 transition duration-500">
+                    "우리는 상상해야 한다. 시시포스가 행복하다고."</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded w-full text-left mb-6 space-y-4">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                    <span class="text-xs text-gray-400 uppercase">최종 성과 (먼지)</span>
+                    <span class="text-2xl font-bold text-yellow-400" id="end-score">0 g</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="block text-gray-500">종료 사유</span>
+                        <span class="block text-red-400 font-bold mt-1" id="end-reason">알 수 없음</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-gray-500">지불한 수명</span>
+                        <span class="block text-gray-300 font-bold mt-1" id="end-sacrifice">0%</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="final-message" class="text-sm font-serif italic text-gray-400 leading-relaxed min-h-[80px] px-4">
-            <!-- Messages will be injected here -->
-        </div>
-
-        <div class="glass-panel p-4 rounded w-full mt-6 space-y-3 border border-gray-800">
-            <p class="text-xs text-gray-400">계약 종료 후, 이름을 남기면 명예의 전당에 기록됩니다.</p>
-            <input id="player-name" type="text" maxlength="32" placeholder="익명 노동자"
-                class="w-full bg-black/40 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500" />
-            <button id="submit-score" onclick="submitScore()"
-                class="w-full py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-sm rounded transition border border-yellow-500/30">명예의
-                전당에 올리기</button>
-            <p id="submit-status" class="text-[11px] text-gray-500">상위 5명의 기록만 보존됩니다.</p>
-        </div>
-
-        <div class="glass-panel p-4 rounded w-full mt-4 border border-gray-800">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">현재 명예의 전당</h3>
-                <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+            <div id="final-message" class="text-sm font-serif italic text-gray-400 leading-relaxed min-h-[80px] px-4">
+                <!-- Messages will be injected here -->
             </div>
-            <ol id="end-leaderboard" class="space-y-2 w-full"></ol>
-        </div>
 
-        <button onclick="location.reload()"
-            class="mt-8 text-xs text-gray-500 border border-gray-700 px-8 py-3 hover:bg-gray-800 hover:text-white transition uppercase tracking-widest">
-            새 계약 체결 (다시 하기)
-        </button>
+            <div class="glass-panel p-4 rounded w-full mt-6 space-y-3 border border-gray-800">
+                <p class="text-xs text-gray-400">계약 종료 후, 이름을 남기면 명예의 전당에 기록됩니다.</p>
+                <input id="player-name" type="text" maxlength="32" placeholder="익명 노동자"
+                    class="w-full bg-black/40 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-yellow-500" />
+                <button id="submit-score" onclick="submitScore()"
+                    class="w-full py-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold text-sm rounded transition border border-yellow-500/30">명예의
+                    전당에 올리기</button>
+                <p id="submit-status" class="text-[11px] text-gray-500">상위 5명의 기록만 보존됩니다.</p>
+            </div>
+
+            <div class="glass-panel p-4 rounded w-full mt-4 border border-gray-800">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">현재 명예의 전당</h3>
+                    <span class="text-[10px] text-yellow-500">자동 갱신 중</span>
+                </div>
+                <ol id="end-leaderboard" class="space-y-2 w-full"></ol>
+            </div>
+
+            <button onclick="location.reload()"
+                class="mt-8 text-xs text-gray-500 border border-gray-700 px-8 py-3 hover:bg-gray-800 hover:text-white transition uppercase tracking-widest">
+                새 계약 체결 (다시 하기)
+            </button>
+        </div>
     </section>
 
     <script type="module">
