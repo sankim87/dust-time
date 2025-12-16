@@ -298,15 +298,18 @@
     </section>
 
     <!-- 3. END SCREEN -->
-    <section id="end-screen" class="hidden-page text-center p-8 max-w-md w-full z-10 flex flex-col items-center">
-
-        <h2 class="text-4xl font-black text-gray-200 mb-2">계약 종료</h2>
+    <!-- 3. END SCREEN -->
+    <section id="end-screen"
+        class="hidden-page absolute inset-0 overflow-y-auto text-center p-6 w-full z-20 flex flex-col items-center bg-[#111]">
+        <!-- Added pt-8 to ensure top content isn't under any browser UI, although absolute inset should handle it -->
+        <h2 class="text-3xl font-black text-gray-200 mb-2 mt-4">계약 종료</h2>
         <div class="w-16 h-1 bg-red-600 mb-8"></div>
 
+
         <!-- Added Sisyphus Art -->
-        <div class="mb-6 relative group">
+        <div class="mb-4 relative group shrink-0">
             <img src="./assets/sisyphus.png" alt="Endless Labor"
-                class="w-48 h-48 mx-auto rounded border border-gray-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
+                class="w-40 h-40 mx-auto rounded border border-gray-800 opacity-60 grayscale hover:grayscale-0 transition-all duration-700"
                 style="image-rendering: pixelated;">
             <div
                 class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
@@ -370,6 +373,11 @@
 
         async function initNetworkServices() {
             try {
+                // [NEW] Check for local file protocol
+                if (window.location.protocol === 'file:') {
+                    throw new Error("Local file protocol detected (Firebase requires HTTP/HTTPS)");
+                }
+
                 // Import local firebase configuration
                 const fbConfig = await import('./firebase.js');
                 db = fbConfig.db;
@@ -389,7 +397,20 @@
             } catch (err) {
                 console.error("Network Init Failed (Offline Mode)", err);
                 isOffline = true;
-                renderLeaderboardError(els.leaderboard.start, "오프라인 모드 (연결 불가)");
+
+                let errorMsg = "오프라인 모드 (연결 불가)";
+                if (err.message.includes("Local file")) {
+                    errorMsg = "주의: 로컬 파일로 실행 중 (서버 필요)";
+                    // Additional alert for clarity
+                    setTimeout(() => {
+                        const banner = document.createElement('div');
+                        banner.className = "absolute top-0 left-0 w-full bg-red-900/90 text-white text-xs p-2 text-center z-50 pointer-events-none";
+                        banner.innerHTML = "⚠ <b>주의:</b> HTML 파일을 직접 열면(file://) 데이터베이스가 작동하지 않습니다.<br>VS Code의 'Live Server' 등을 이용해 주세요.";
+                        document.body.appendChild(banner);
+                    }, 1000);
+                }
+
+                renderLeaderboardError(els.leaderboard.start, errorMsg);
                 renderLeaderboardError(els.leaderboard.end, "오프라인 모드 (연결 불가)");
                 els.rank.innerText = "로컬 플레이";
 
